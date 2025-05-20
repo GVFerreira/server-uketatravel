@@ -7,7 +7,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
     "build": "tsup",
-    "build:prod": "npm install —frozen-lockfile; npm run build",
+    "build:prod": "npm install --frozen-lockfile; npm run build",
     "start": "node dist/http/server.js",
     "start:prod": "npm prisma migrate deploy; npm prisma generate; npm run start"
   },
