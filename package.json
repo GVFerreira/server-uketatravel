@@ -1,0 +1,50 @@
+{
+  "name": "@saas/api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/http/server.ts",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio",
+    "build": "tsup",
+    "build:prod": "npm install —frozen-lockfile; npm run build",
+    "start": "node dist/http/server.js",
+    "start:prod": "npm prisma migrate deploy; npm prisma generate; npm run start"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@fastify/jwt": "^9.0.4",
+    "@fastify/swagger": "^9.4.2",
+    "@fastify/swagger-ui": "^5.2.1",
+    "@google-cloud/vision": "^5.1.0",
+    "@prisma/client": "6.3.1",
+    "@saas/auth": "file:./auth",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.5.0",
+    "fastify": "^5.2.1",
+    "fastify-plugin": "^5.0.1",
+    "fastify-type-provider-zod": "^4.0.2",
+    "handlebars": "^4.7.8",
+    "node-cache": "^5.1.2",
+    "nodemailer": "^6.9.15",
+    "nodemailer-express-handlebars": "^7.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.5.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/dotenv": "^6.1.1",
+    "@types/node": "^22.13.1",
+    "@types/node-cache": "^4.2.5",
+    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer-express-handlebars": "^4.0.5",
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.3.1",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

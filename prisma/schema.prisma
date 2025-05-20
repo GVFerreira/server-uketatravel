@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String?
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tokens   Token[]
+  accounts Account[]
+
+  @@map("users")
+}
+
+enum TokenType {
+  PASSWORD_RECOVER
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  type      TokenType
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  @@map("tokens")
+}
+
+enum AccountProvider {
+  GITHUB
+}
+
+model Account {
+  id                String          @id @default(uuid())
+  provider          AccountProvider
+  providerAccountId String          @unique @map("provider_account_id")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  @@unique([provider, userId])
+  @@map("accounts")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  BILLING
+}
+
+model Solicitation {
+  id                     String @id @default(uuid())
+  name                   String
+  surname                String
+  dateOfBirth            String @map("date_birth")
+  passportNumber         String @map("passport_number")
+  passportExpiryDate     String @map("passport_expiry_date")
+  nationality            String
+  passportCountryOfIssue String @map("passport_country_issue")
+  phone                  String
+  email                  String
+  address                String
+  city                   String
+  zipCode                String @map("zip_code")
+  country                String
+
+  otherNationality                    String?  @map("other_nationality")
+  occupation                          String?
+  hasCriminalConviction               Boolean? @map("has_criminal_conviction")
+  hasCriminalConvictionLastYear       Boolean? @map("has_criminal_conviction_last_year")
+  crimeHasBeenConvicted               String?  @map("crime_has_been_convicted")
+  countryCrimeHasBeenConvicted        String?  @map("country_crime_has_been_convicted")
+  convictedMoreThanOneYear            Boolean? @map("convicted_more_than_one_year")
+  hasEverConvictedMoreThanOneYear     Boolean? @map("has_ever_convicted_more_than_one_year")
+  crimeConvictedMoreThanOneYear       String?  @map("crime_convicted_more_than_one_year")
+  countryConvictedMoreThanOneYear     String?  @map("country_convicted_more_than_one_year")
+  initialDateConvictedMoreThanOneYear String?  @map("initial_date_convicted_more_than_one_year")
+  endDateConvictedMoreThanOneYear     String?  @map("end_date_convicted_more_than_one_year")
+  whichSituationWasInvolvedIn         String?  @map("which_situation_was_involved")
+
+  passaportUrl    String? @map("passport_url")
+  profilePhotoUrl String? @map("profile_photo_url")
+
+  status    String?  @default("Solicitação em análise interna")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  payment SolicitationPayment[]
+
+  @@map("solicitations")
+}
+
+model Payment {
+  id                String  @id @default(uuid())
+  idClient          String  @map("id_client")
+  idOrder           String  @map("id_order")
+  transactionAmount Float   @map("transaction_amount")
+  transactionId     String  @map("transaction_id")
+  docType           String  @default("CPF")
+  docNumber         String  @map("doc_number")
+  status            String
+  paymentTypeId     String  @map("payment_type_id")
+  qrCode            String? @map("qr_code") //@db.Text
+  qrCodeBase64      String? @map("qr_code_base_64") //@db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  solicitations SolicitationPayment[]
+
+  @@map("payments")
+}
+
+model SolicitationPayment {
+  id              String   @id @default(uuid())
+  paymentId       String
+  solicitationsId String
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  payment       Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  solicitations Solicitation @relation(fields: [solicitationsId], references: [id], onDelete: Cascade)
+
+  @@map("solicitation_payment")
+}
