@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/http/server.ts",
+    "db:prod": "npx prisma migrate deploy; npx prisma generate",
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
     "build": "tsup",
     "build:prod": "npm install; npm run build",
-    "start": "node dist/http/server.js",
-    "start:prod": "npm prisma migrate deploy; npm prisma generate; npm run start"
+    "start": "node dist/http/server.js"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
