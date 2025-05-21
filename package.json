@@ -7,7 +7,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
     "build": "tsup",
-    "build:prod": "npm install --frozen-lockfile; npm run build",
+    "build:prod": "npm install; npm run build",
     "start": "node dist/http/server.js",
     "start:prod": "npm prisma migrate deploy; npm prisma generate; npm run start"
   },
@@ -28,6 +28,7 @@
     "node-cache": "^5.1.2",
     "nodemailer": "^6.9.15",
     "nodemailer-express-handlebars": "^7.0.0",
+    "tsup": "^8.5.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -40,7 +41,6 @@
     "@types/nodemailer-express-handlebars": "^4.0.5",
     "dotenv-cli": "^8.0.0",
     "prisma": "^6.3.1",
-    "tsup": "^8.5.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   },
