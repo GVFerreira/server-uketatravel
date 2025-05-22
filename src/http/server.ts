@@ -12,6 +12,7 @@ import {
 
 import { errorHandler } from './error-handler'
 
+import { getUsers } from './routes/user/get-users'
 import { authenticateWithPassword } from './routes/user/authenticate-with-password'
 import { requestPasswordRecover } from './routes/user/request-password-recover'
 import { resetPassword } from './routes/user/reset-password'
@@ -33,10 +34,9 @@ import { cardPayment } from './routes/checkout/card-payment'
 import { pixPayment } from './routes/checkout/pix-payment'
 import { checkPixPayment } from './routes/checkout/check-pix-payment'
 import { getPayments } from './routes/payment/get-payments'
-import { getUsers } from './routes/user/get-users'
+import { webhookAppmax } from './routes/checkout/webhook'
 
 import dotenv from 'dotenv'
-import { webhookAppmax } from './routes/checkout/webhook'
 dotenv.config()
 
 

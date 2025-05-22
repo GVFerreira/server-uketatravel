@@ -2,6 +2,11 @@ import type { FastifyInstance } from "fastify"
 import type { ZodTypeProvider } from "fastify-type-provider-zod"
 import type nodemailer from "nodemailer"
 import transporter from "@/utils/nodemailer"
+import { z } from "zod"
+import { prisma } from "@/lib/prisma"
+
+import dotenv from 'dotenv'
+dotenv.config()
 
 
 interface CustomMailOptions extends nodemailer.SendMailOptions {
@@ -49,6 +54,44 @@ async function sendEmailAsync(mailOptions: CustomMailOptions, solicitation: any)
   }
 }
 
+async function getPayment(idOrder: string) {
+  try {
+    const payment = await prisma.payment.findFirst({
+      where: {
+        idOrder
+      },
+      include: {
+        solicitations: {
+          include: {
+            solicitations: true
+          }
+        }
+      }
+    })
+    return payment
+  } catch (e) {
+    console.log(e)
+    return null
+  }
+}
+
+async function updatePayment(data: { id: string, status: string }) {
+  try {
+    const updatedPayment = await prisma.payment.update({
+      where: {
+        id: data.id
+      },
+      data: {
+        status: data.status
+      }
+    })
+    return updatedPayment
+  } catch (e) {
+    console.log(e)
+    return null
+  }
+}
+
 export async function webhookAppmax(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
     "/webhook-appmax",
@@ -56,25 +99,71 @@ export async function webhookAppmax(app: FastifyInstance) {
       schema: {
         tags: ["Checkout"],
         summary: "Webhook that receives information from Appmax",
-        // body: z.object({
-        //   "environment": z.string(),
-        //   "event": z.enum(['OrderPaid', 'PaymentNotAuthorized | Reason: Autorizacao negada']),
-        //   "data": z.object({
-        //     "order_id": z.number(),
-        //     "order_status": z.enum(['aprovado', 'cancelado']),
-        //     "order_total": z.string()
-        //   }),
-        // }),
-        // response: {
-        //   // Schema de resposta omitido para brevidade
-        // },
+        body: z.object({
+          environment: z.string(),
+          event: z.enum(['OrderPaid', 'OrderPaidByPix', 'PaymentNotAuthorized | Reason: Não autorizado']),
+          data: z.object({
+            order_id: z.number(),
+            order_status: z.enum(['aprovado', 'cancelado']),
+            order_payment_type: z.enum(['CreditCard', 'Pix']),
+            order_total: z.number()
+          }),
+        }),
+        response: {
+          // Schema de resposta omitido para brevidade
+        },
       },
     },
     async (request, reply) => {
       const payload = request.body
-      console.log(payload)
 
-      return reply.status(200).send({ ok: true })
+      const payment = await getPayment(String(payload.data.order_id))
+
+      if (!payment) {
+        return reply.status(400)
+      }
+
+      if (payment.status === 'Aprovado') {
+        return reply.status(200).send({ message: 'Payment already approved'})
+      }
+
+      if (payload.event === "OrderPaid" || payload.event === "OrderPaidByPix") {
+        await updatePayment({ id: payment.id, status: "Aprovado"})
+
+        const solicitations = payment.solicitations
+        
+        for (const solicitation of solicitations) {
+          // Prepara o email, mas não espera o envio para responder
+          const mailOptions: CustomMailOptions = {
+            from: `UK ETA Travel <${process.env.SMTP_USER}>`,
+            to: solicitation.solicitations.email,
+            subject: "Pagamento aprovado",
+            template: "pagamento-aprovado",
+          }
+
+          // Envia o email de forma assíncrona
+          sendEmailAsync(mailOptions, solicitation)
+        }
+      } else if (payload.event === "PaymentNotAuthorized | Reason: Não autorizado") {
+        await updatePayment({ id: payment.id, status: "Negado"})
+
+        const solicitations = payment.solicitations
+        
+        for (const solicitation of solicitations) {
+          // Prepara o email, mas não espera o envio para responder
+          const mailOptions: CustomMailOptions = {
+            from: `UK ETA Travel <${process.env.SMTP_USER}>`,
+            to: solicitation.solicitations.email,
+            subject: "Pagamento recusado",
+            template: "pagamento-recusado",
+          }
+
+          // Envia o email de forma assíncrona
+          sendEmailAsync(mailOptions, solicitation)
+        }
+      }
+
+      return reply.status(201).send({message: 'Payment has been updated successfully'})
       
   })
 }
