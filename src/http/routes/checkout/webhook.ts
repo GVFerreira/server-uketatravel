@@ -72,7 +72,10 @@ export async function webhookAppmax(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const payload = request.body
+      console.log(payload)
 
+      return reply.status(200).send({ ok: true })
       
   })
 }
