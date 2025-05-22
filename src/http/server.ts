@@ -36,6 +36,7 @@ import { getPayments } from './routes/payment/get-payments'
 import { getUsers } from './routes/user/get-users'
 
 import dotenv from 'dotenv'
+import { webhookAppmax } from './routes/checkout/webhook'
 dotenv.config()
 
 
@@ -103,6 +104,7 @@ app.register(getInfo)
 app.register(cardPayment)
 app.register(pixPayment)
 app.register(checkPixPayment)
+app.register(webhookAppmax)
 
 app.listen({ port: Number(process.env.PORT), host: "0.0.0.0" }).then(() => {
   console.log('HTTP server running!')
