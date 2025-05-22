@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify"
 import type { ZodTypeProvider } from "fastify-type-provider-zod"
-import { z } from "zod"
 import type nodemailer from "nodemailer"
 import transporter from "@/utils/nodemailer"
 
@@ -57,18 +56,18 @@ export async function webhookAppmax(app: FastifyInstance) {
       schema: {
         tags: ["Checkout"],
         summary: "Webhook that receives information from Appmax",
-        body: z.object({
-          "environment": z.string(),
-          "event": z.enum(['OrderPaid', 'PaymentNotAuthorized | Reason: Autorizacao negada']),
-          "data": z.object({
-            "order_id": z.number(),
-            "order_status": z.enum(['aprovado', 'cancelado']),
-            "order_total": z.string()
-          }),
-        }),
-        response: {
-          // Schema de resposta omitido para brevidade
-        },
+        // body: z.object({
+        //   "environment": z.string(),
+        //   "event": z.enum(['OrderPaid', 'PaymentNotAuthorized | Reason: Autorizacao negada']),
+        //   "data": z.object({
+        //     "order_id": z.number(),
+        //     "order_status": z.enum(['aprovado', 'cancelado']),
+        //     "order_total": z.string()
+        //   }),
+        // }),
+        // response: {
+        //   // Schema de resposta omitido para brevidade
+        // },
       },
     },
     async (request, reply) => {
