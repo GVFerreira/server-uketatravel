@@ -37,6 +37,7 @@ import { getPayments } from './routes/payment/get-payments'
 import { webhookAppmax } from './routes/checkout/webhook'
 
 import dotenv from 'dotenv'
+import { updateEmail } from './routes/solicitation/update-email'
 dotenv.config()
 
 
@@ -95,6 +96,7 @@ app.register(analyzePassport)
 app.register(savePhoto)
 app.register(analyzePhoto)
 app.register(solicitationPublicInfo)
+app.register(updateEmail)
 
 //Payment Routes
 app.register(getPayments)

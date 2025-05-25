@@ -43,6 +43,9 @@ export async function getUsers(app: FastifyInstance) {
             avatarUrl: true,
             createdAt: true,
             updatedAt: true
+          },
+          orderBy: {
+            createdAt: "asc"
           }
         })
 

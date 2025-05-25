@@ -95,8 +95,9 @@ model Solicitation {
   endDateConvictedMoreThanOneYear     String?  @map("end_date_convicted_more_than_one_year")
   whichSituationWasInvolvedIn         String?  @map("which_situation_was_involved")
 
-  passaportUrl    String? @map("passport_url")
-  profilePhotoUrl String? @map("profile_photo_url")
+  passaportUrl      String? @map("passport_url")
+  profilePhotoUrl   String? @map("profile_photo_url")
+  attachmentFileUrl String? @map("attachment_file_url")
 
   status    String?  @default("Solicitação em análise interna")
   createdAt DateTime @default(now()) @map("created_at")
