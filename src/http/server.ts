@@ -76,7 +76,11 @@ app.register(fastifyJWT, {
   secret: process.env.JWT_SECRET
 })
 
-app.register(fastifyCors)
+app.register(fastifyCors, {
+  origin: [String(process.env.NEXT_PUBLIC_APP_URL)], // endereço do seu frontend em produção
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+})
 
 //User routes
 app.register(createAccount)
