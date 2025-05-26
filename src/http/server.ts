@@ -38,6 +38,7 @@ import { webhookAppmax } from './routes/checkout/webhook'
 
 import dotenv from 'dotenv'
 import { updateEmail } from './routes/solicitation/update-email'
+import { umTeste } from './um-teste'
 dotenv.config()
 
 
@@ -111,6 +112,8 @@ app.register(cardPayment)
 app.register(pixPayment)
 app.register(checkPixPayment)
 app.register(webhookAppmax)
+
+app.register(umTeste)
 
 app.listen({ port: Number(process.env.PORT), host: "0.0.0.0" }).then(() => {
   console.log('HTTP server running!')
