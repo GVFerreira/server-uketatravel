@@ -5,68 +5,31 @@ import { z } from "zod"
 import { BadRequestError } from "../_errors/bad-request-error"
 import type nodemailer from "nodemailer"
 import transporter from "@/utils/nodemailer"
-import NodeCache from "node-cache"
-
-// Cache para armazenar a cotação do dólar por 6 horas (21600 segundos)
-const dolarCache = new NodeCache({ stdTTL: 21600 })
-
-type Dolar = {
-  cotacaoCompra: number
-  cotacaoVenda: number
-  dataHoraCotacao: string
-}
 
 interface CustomMailOptions extends nodemailer.SendMailOptions {
   template?: string
   context?: { [key: string]: any }
 }
 
-// Função otimizada para obter cotação do dólar com cache e timeout
 async function getDolar() {
-  const CACHE_KEY = "dolar_cotacao"
-
-  // Verifica se já existe no cache
-  const cachedDolar = dolarCache.get<Dolar>(CACHE_KEY)
-  if (cachedDolar) {
-    return cachedDolar
-  }
-
-  const now = new Date()
-  const brasiliaDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
-
-  const day = String(brasiliaDate.getDate() - 1).padStart(2, "0")
-  const month = String(brasiliaDate.getMonth() + 1).padStart(2, "0")
-  const year = brasiliaDate.getFullYear()
-  const formattedDate = `${month}-${day}-${year}`
-
-  const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?$format=json&@dataCotacao='${formattedDate}'`
-
   try {
-    // Adiciona timeout de 5 segundos para a requisição
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-    const reqDolar = await fetch(url, {
-      signal: controller.signal,
+    const dolar = await prisma.dolar.findUnique({
+      where: {
+        id: 'singleton'
+      }
     })
-    clearTimeout(timeoutId)
 
-    const dolarResponse = await reqDolar.json()
-
-    const dolar: Dolar = dolarResponse.value[0]
-
-    // Armazena no cache
-    dolarCache.set(CACHE_KEY, dolar)
     return dolar
   } catch (error) {
     console.error("Erro ao obter cotação do dólar:", error)
 
     // Em caso de erro, use um valor padrão ou a última cotação conhecida
-    const defaultDolar: Dolar = {
-      cotacaoCompra: 5.5, // Valor aproximado, ajuste conforme necessário
-      cotacaoVenda: 5.5, // Valor aproximado, ajuste conforme necessário
-      dataHoraCotacao: new Date().toISOString(),
+    const defaultDolar = {
+      buyQuote: 5.70,
+      sellQuote: 5.70,
+      dateTimeQuote: new Date().toISOString(),
     }
+
     return defaultDolar
   }
 }
@@ -151,12 +114,12 @@ export async function cardPayment(app: FastifyInstance) {
 
       try {
         // Configurações para todas as requisições à API Appmax
-        const appmaxToken = "40216654-316062C0-FCAC9CF5-380CDBB9"
+        const appmaxToken = process.env.APPMAX_KEY
         const appmaxHeaders = { "Content-Type": "application/json" }
 
         // Cria o cliente na Appmax
         const newCustomerResponse = await fetchWithTimeout(
-          "https://admin.appmax.com.br/api/v3/customer",
+          `${process.env.APPMAX_BASEURL}/customer`,
           {
             method: "POST",
             headers: appmaxHeaders,
@@ -179,7 +142,7 @@ export async function cardPayment(app: FastifyInstance) {
 
         // Cria o pedido na Appmax
         const newOrderResponse = await fetchWithTimeout(
-          "https://admin.appmax.com.br/api/v3/order",
+          `${process.env.APPMAX_BASEURL}/order`,
           {
             method: "POST",
             headers: appmaxHeaders,
@@ -188,9 +151,9 @@ export async function cardPayment(app: FastifyInstance) {
               products: [
                 {
                   sku: "835103",
-                  name: "Assistência - UK ETA Travel",
+                  name: "Assistência - UK ETA Vistos",
                   qty: 1,
-                  price: 59.9 * dolar.cotacaoVenda,
+                  price: 59.9 * dolar.buyQuote,
                   digital_product: 1,
                 },
               ],
@@ -204,7 +167,7 @@ export async function cardPayment(app: FastifyInstance) {
 
         // Processa o pagamento na Appmax
         const newPaymentResponse = await fetchWithTimeout(
-          "https://admin.appmax.com.br/api/v3/payment/credit-card",
+          `${process.env.APPMAX_BASEURL}/payment/credit-card`,
           {
             method: "POST",
             headers: appmaxHeaders,
@@ -221,7 +184,7 @@ export async function cardPayment(app: FastifyInstance) {
                   document_number: cardDetails.cpfNumber,
                   name: cardDetails.cardHolderName,
                   installments: 1,
-                  soft_descriptor: "UKETATRAVEL",
+                  soft_descriptor: "UKETAVISTOS",
                 },
               },
             }),
@@ -265,7 +228,7 @@ export async function cardPayment(app: FastifyInstance) {
 
             // Prepara o email, mas não espera o envio para responder
             const mailOptions: CustomMailOptions = {
-              from: "UK ETA Travel <contato@gvfwebdesign.com.br>",
+              from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
               to: solicitation.email,
               subject: "Pagamento aprovado",
               template: "pagamento-aprovado",
@@ -303,7 +266,7 @@ export async function cardPayment(app: FastifyInstance) {
 
             // Prepara o email, mas não espera o envio para responder
             const mailOptions: CustomMailOptions = {
-              from: "UK ETA Travel <contato@gvfwebdesign.com.br>",
+              from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
               to: solicitation.email,
               subject: "Pagamento recusado",
               template: "pagamento-recusado",

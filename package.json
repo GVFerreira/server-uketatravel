@@ -26,6 +26,7 @@
     "fastify-type-provider-zod": "^4.0.2",
     "handlebars": "^4.7.8",
     "node-cache": "^5.1.2",
+    "node-cron": "^4.0.7",
     "nodemailer": "^6.9.15",
     "nodemailer-express-handlebars": "^7.0.0",
     "tsup": "^8.5.0",

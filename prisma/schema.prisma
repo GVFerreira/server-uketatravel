@@ -139,3 +139,13 @@ model SolicitationPayment {
 
   @@map("solicitation_payment")
 }
+
+model Dolar {
+  id            String   @id
+  buyQuote      Float    @map("buy_quote")
+  sellQuote     Float    @map("sell_quote")
+  dateTimeQuote DateTime @map("date_time_quote")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("dolar_quote")
+}

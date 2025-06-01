@@ -10,8 +10,6 @@ import {
   ZodTypeProvider
 } from 'fastify-type-provider-zod'
 
-import { errorHandler } from './error-handler'
-
 import { getUsers } from './routes/user/get-users'
 import { authenticateWithPassword } from './routes/user/authenticate-with-password'
 import { requestPasswordRecover } from './routes/user/request-password-recover'
@@ -28,17 +26,25 @@ import { analyzePhoto } from './routes/solicitation/analyze-photo'
 import { solicitationPublicInfo } from './routes/solicitation/solicitation-public-info'
 import { getSolicitations } from './routes/solicitation/get-solicitations'
 import { getSolicitation } from './routes/solicitation/get-solicitation'
+import { updateEmail } from './routes/solicitation/update-email'
 
 import { getInfo } from './routes/checkout/get-info'
 import { cardPayment } from './routes/checkout/card-payment'
 import { pixPayment } from './routes/checkout/pix-payment'
 import { checkPixPayment } from './routes/checkout/check-pix-payment'
-import { getPayments } from './routes/payment/get-payments'
 import { webhookAppmax } from './routes/checkout/webhook'
 
+import { getPayments } from './routes/payment/get-payments'
+
+import { errorHandler } from './error-handler'
+
+import cron from 'node-cron'
+
 import dotenv from 'dotenv'
-import { updateEmail } from './routes/solicitation/update-email'
-import { umTeste } from './um-teste'
+import { prisma } from '@/lib/prisma'
+import { formContact } from './form-contact'
+import { getDollar } from './routes/dollar/get-dollar'
+import { updateDollar } from './routes/dollar/update-dollar'
 dotenv.config()
 
 
@@ -52,7 +58,7 @@ app.setErrorHandler(errorHandler)
 app.register(fastifySwagger, {
   openapi: {
     info: {
-      title: 'UK ETA Travel',
+      title: 'UK ETA Vistos',
       description: 'Full-stack SaaS app',
       version: '1.0.0',
     },
@@ -83,7 +89,10 @@ app.register(fastifyCors, {
   credentials: true
 })
 
-//User routes
+// General Routes
+app.register(formContact)
+
+//User Routes
 app.register(createAccount)
 app.register(authenticateWithPassword)
 app.register(getProfile)
@@ -113,7 +122,55 @@ app.register(pixPayment)
 app.register(checkPixPayment)
 app.register(webhookAppmax)
 
-app.register(umTeste)
+//Dollar Routes
+app.register(getDollar)
+app.register(updateDollar)
+
+type Dolar = {
+  cotacaoCompra: number
+  cotacaoVenda: number
+  dataHoraCotacao: string
+}
+
+cron.schedule('0 6,18 * * *', async () => {
+  try {
+    const now = new Date()
+    const brasiliaDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
+  
+    const day = String(brasiliaDate.getDate() - 1).padStart(2, "0")
+    const month = String(brasiliaDate.getMonth() + 1).padStart(2, "0")
+    const year = brasiliaDate.getFullYear()
+    const formattedDate = `${month}-${day}-${year}`
+  
+    const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?$format=json&@dataCotacao='${formattedDate}'`
+  
+    const reqDolar = await fetch(url)
+    const dolarResponse = await reqDolar.json()
+    const dolar: Dolar = dolarResponse.value[0]
+
+    if(dolar) {
+      await prisma.dolar.upsert({
+        where: { id: 'singleton' },
+        create: {
+          id: 'singleton',
+          buyQuote: dolar.cotacaoCompra,
+          sellQuote: dolar.cotacaoVenda,
+          dateTimeQuote: new Date(dolar.dataHoraCotacao),
+        },
+        update: {
+          buyQuote: dolar.cotacaoCompra,
+          sellQuote: dolar.cotacaoVenda,
+          dateTimeQuote: new Date(dolar.dataHoraCotacao),
+        }
+      })
+
+      console.log('Dolar salvo com sucesso!')
+    }
+
+  } catch (err) {
+    console.error('Erro ao executar tarefa agendada:', err)
+  }
+})
 
 app.listen({ port: Number(process.env.PORT), host: "0.0.0.0" }).then(() => {
   console.log('HTTP server running!')

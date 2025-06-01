@@ -135,7 +135,7 @@ export async function webhookAppmax(app: FastifyInstance) {
         for (const solicitation of solicitations) {
           // Prepara o email, mas não espera o envio para responder
           const mailOptions: CustomMailOptions = {
-            from: `UK ETA Travel <${process.env.SMTP_USER}>`,
+            from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
             to: solicitation.solicitations.email,
             subject: "Pagamento aprovado",
             template: "pagamento-aprovado",
@@ -152,7 +152,7 @@ export async function webhookAppmax(app: FastifyInstance) {
         for (const solicitation of solicitations) {
           // Prepara o email, mas não espera o envio para responder
           const mailOptions: CustomMailOptions = {
-            from: `UK ETA Travel <${process.env.SMTP_USER}>`,
+            from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
             to: solicitation.solicitations.email,
             subject: "Pagamento recusado",
             template: "pagamento-recusado",

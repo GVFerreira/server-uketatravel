@@ -167,7 +167,7 @@ export async function pixPayment(app: FastifyInstance) {
               "access-token": appmaxToken,
               products: [{
                 sku: "835103",
-                name: "Assistência - UK ETA Travel",
+                name: "Assistência - UK ETA Vistos",
                 qty: 1,
                 price: 59.9 * dolar.cotacaoVenda,
                 digital_product: 1,
