@@ -137,7 +137,7 @@ cron.schedule('0 6,18 * * *', async () => {
     const now = new Date()
     const brasiliaDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
   
-    const day = String(brasiliaDate.getDate() - 1).padStart(2, "0")
+    const day = String(brasiliaDate.getDate()).padStart(2, "0")
     const month = String(brasiliaDate.getMonth() + 1).padStart(2, "0")
     const year = brasiliaDate.getFullYear()
     const formattedDate = `${month}-${day}-${year}`
