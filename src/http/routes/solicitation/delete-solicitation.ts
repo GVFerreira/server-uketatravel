@@ -5,36 +5,30 @@ import { z } from "zod"
 import { auth } from "@/http/middlewares/auth"
 import { UnauthorizedError } from "../_errors/unauthorized-error"
 
-export async function updateStatus(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().register(auth).put('/solicitation/update-status', {
+export async function deleteSolicitation(app: FastifyInstance) {
+  app.withTypeProvider<ZodTypeProvider>().register(auth).delete('/solicitation/delete', {
     schema: {
       tags: ['Solicitation'],
-      summary: 'Update solicitation status and add file path',
+      summary: 'Delete a solicitation',
       security: [
         { bearerAuth: [] }
       ],
       body: z.object({
-        id: z.string().uuid(),
-        status: z.string(),
-        attachmentPath: z.string().optional()
+        id: z.string().uuid()
       })
     }
   }, async (request, reply) => {
-    const { id, status, attachmentPath } = request.body
+    const { id } = request.body
     
     const userId = await request.getCurrentUserId()
     if (!userId) {
       throw new UnauthorizedError('User is not authenticated')
     }
 
-    await prisma.solicitation.update({
-      where: { id },
-      data: {
-        status,
-        attachmentFileUrl: attachmentPath
-      }
+    await prisma.solicitation.delete({
+      where: { id }
     })
 
-    return reply.status(206).send()
+    return reply.status(200).send()
   })
 }

@@ -9,6 +9,9 @@ import {
   validatorCompiler,
   ZodTypeProvider
 } from 'fastify-type-provider-zod'
+import { prisma } from '@/lib/prisma'
+
+import { formContact } from './form-contact'
 
 import { getUsers } from './routes/user/get-users'
 import { authenticateWithPassword } from './routes/user/authenticate-with-password'
@@ -27,6 +30,8 @@ import { solicitationPublicInfo } from './routes/solicitation/solicitation-publi
 import { getSolicitations } from './routes/solicitation/get-solicitations'
 import { getSolicitation } from './routes/solicitation/get-solicitation'
 import { updateEmail } from './routes/solicitation/update-email'
+import { updateStatus } from './routes/solicitation/update-status'
+import { deleteSolicitation } from './routes/solicitation/delete-solicitation'
 
 import { getInfo } from './routes/checkout/get-info'
 import { cardPayment } from './routes/checkout/card-payment'
@@ -36,17 +41,15 @@ import { webhookAppmax } from './routes/checkout/webhook'
 
 import { getPayments } from './routes/payment/get-payments'
 
+import { getDollar } from './routes/dollar/get-dollar'
+import { updateDollar } from './routes/dollar/update-dollar'
+
 import { errorHandler } from './error-handler'
 
 import cron from 'node-cron'
 
 import dotenv from 'dotenv'
-import { prisma } from '@/lib/prisma'
-import { formContact } from './form-contact'
-import { getDollar } from './routes/dollar/get-dollar'
-import { updateDollar } from './routes/dollar/update-dollar'
 dotenv.config()
-
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -84,7 +87,7 @@ app.register(fastifyJWT, {
 })
 
 app.register(fastifyCors, {
-  origin: [String(process.env.NEXT_PUBLIC_APP_URL)], // endereço do seu frontend em produção
+  origin: [String(process.env.NEXT_PUBLIC_APP_URL)],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 })
@@ -111,6 +114,8 @@ app.register(savePhoto)
 app.register(analyzePhoto)
 app.register(solicitationPublicInfo)
 app.register(updateEmail)
+app.register(updateStatus)
+app.register(deleteSolicitation)
 
 //Payment Routes
 app.register(getPayments)
@@ -171,6 +176,9 @@ cron.schedule('0 6,18 * * *', async () => {
     console.error('Erro ao executar tarefa agendada:', err)
   }
 })
+
+import fastifyMultipart from 'fastify-multipart'
+app.register(fastifyMultipart)
 
 app.listen({ port: Number(process.env.PORT), host: "0.0.0.0" }).then(() => {
   console.log('HTTP server running!')

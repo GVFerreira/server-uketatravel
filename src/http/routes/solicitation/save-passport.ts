@@ -3,15 +3,18 @@ import { ZodTypeProvider } from "fastify-type-provider-zod"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { BadRequestError } from "../_errors/bad-request-error"
+import { PassThrough } from 'stream'
+import { v4 as uuidv4 } from 'uuid'
+import { storageProvider } from "@/services/storage/index"
 
-export async function savePassport(app:FastifyInstance) {
+export async function savePassport(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post('/solicitation/save-passport', {
     schema: {
       tags: ['Solicitation'],
       summary: 'Save passport URL image',
       body: z.object({
         solicitationId: z.string().uuid(),
-        passportUrl: z.string()
+        imageBase64: z.string()
       }),
       response: {
         201: z.object({
@@ -20,28 +23,39 @@ export async function savePassport(app:FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const data = request.body
+    const { solicitationId, imageBase64 } = request.body
 
     const solicitationExists = await prisma.solicitation.findUnique({
-      where: { id: data.solicitationId }
+      where: { id: solicitationId }
     })
 
-    if(!solicitationExists) {
+    if (!solicitationExists) {
       throw new BadRequestError("Unexpected solicitation ID. It does not exist")
     }
 
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+
+    const stream = new PassThrough()
+    stream.end(buffer)
+
+    const filename = `${uuidv4()}.jpg`
+
+    const imageUrl = await storageProvider.upload({
+      file: stream,
+      filename,
+      mimetype: 'image/jpeg'
+    }, 'passport-uploads')
+
     const solicitation = await prisma.solicitation.update({
-      where: {
-        id: data.solicitationId
-      },
+      where: { id: solicitationId },
       data: {
-        passaportUrl: data.passportUrl
+        passaportUrl: imageUrl
       }
     })
 
     return reply.status(201).send({
       solicitationId: solicitation.id
     })
-    
   })
 }
