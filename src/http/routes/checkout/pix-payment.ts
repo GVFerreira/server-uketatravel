@@ -3,69 +3,51 @@ import type { FastifyInstance } from "fastify"
 import type { ZodTypeProvider } from "fastify-type-provider-zod"
 import { z } from "zod"
 import { BadRequestError } from "../_errors/bad-request-error"
-import type nodemailer from "nodemailer"
-import NodeCache from "node-cache"
 
-// Cache para armazenar a cotação do dólar por 6 horas (21600 segundos)
-const dolarCache = new NodeCache({ stdTTL: 21600 })
-
-type Dolar = {
-  cotacaoCompra: number
-  cotacaoVenda: number
-  dataHoraCotacao: string
-}
-
-interface CustomMailOptions extends nodemailer.SendMailOptions {
-  template?: string
-  context?: { [key: string]: any }
-}
-
-// Função otimizada para obter cotação do dólar com cache e timeout
-async function getDolar() {
-  const CACHE_KEY = "dolar_cotacao"
-
-  // Verifica se já existe no cache
-  const cachedDolar = dolarCache.get<Dolar>(CACHE_KEY)
-  if (cachedDolar) {
-    return cachedDolar
+interface AppmaxCustomerResponse {
+  success: boolean
+  data: {
+    id: string
   }
+}
 
-  const now = new Date()
-  const brasiliaDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
+interface AppmaxOrderResponse {
+  success: boolean
+  data: {
+    id: string
+    customer_id: string
+    total: number
+  }
+}
 
-  const day = String(brasiliaDate.getDate() - 2).padStart(2, "0")
-  const month = String(brasiliaDate.getMonth() + 1).padStart(2, "0")
-  const year = brasiliaDate.getFullYear()
-  const formattedDate = `${month}-${day}-${year}`
+interface AppmaxPixPaymentResponse {
+  success: boolean
+  data: {
+    pay_reference: string
+    pix_emv: string
+    pix_qrcode: string
+  }
+}
 
-  const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?$format=json&@dataCotacao='${formattedDate}'`
-
+async function getDolar() {
   try {
-    // Adiciona timeout de 5 segundos para a requisição
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-    const reqDolar = await fetch(url, {
-      signal: controller.signal,
+    const dolar = await prisma.dolar.findUnique({
+      where: {
+        id: 'singleton'
+      }
     })
-    clearTimeout(timeoutId)
 
-    const dolarResponse = await reqDolar.json()
-
-    const dolar: Dolar = dolarResponse.value[0]
-
-    // Armazena no cache
-    dolarCache.set(CACHE_KEY, dolar)
     return dolar
   } catch (error) {
     console.error("Erro ao obter cotação do dólar:", error)
 
     // Em caso de erro, use um valor padrão ou a última cotação conhecida
-    const defaultDolar: Dolar = {
-      cotacaoCompra: 5.5, // Valor aproximado, ajuste conforme necessário
-      cotacaoVenda: 5.5, // Valor aproximado, ajuste conforme necessário
-      dataHoraCotacao: new Date().toISOString(),
+    const defaultDolar = {
+      buyQuote: 5.70,
+      sellQuote: 5.70,
+      dateTimeQuote: new Date().toISOString(),
     }
+
     return defaultDolar
   }
 }
@@ -152,7 +134,7 @@ export async function pixPayment(app: FastifyInstance) {
           5000, // 5 segundos de timeout
         )
 
-        const customer = await newCustomerResponse.json()
+        const customer = await newCustomerResponse.json() as AppmaxCustomerResponse
         if (!customer.success) {
           throw new BadRequestError("Error when trying to create a customer in Appmax")
         }
@@ -169,7 +151,7 @@ export async function pixPayment(app: FastifyInstance) {
                 sku: "835103",
                 name: "Assistência - UK ETA Vistos",
                 qty: 1,
-                price: 59.9 * dolar.cotacaoVenda,
+                price: 68.6 * dolar.buyQuote,
                 digital_product: 1,
               }],
               customer_id: customer.data.id,
@@ -178,7 +160,7 @@ export async function pixPayment(app: FastifyInstance) {
           5000, // 5 segundos de timeout
         )
 
-        const order = await newOrderResponse.json()
+        const order = await newOrderResponse.json() as AppmaxOrderResponse
 
         // Processa o pagamento na Appmax
         const newPaymentResponse = await fetchWithTimeout(
@@ -201,7 +183,7 @@ export async function pixPayment(app: FastifyInstance) {
           10000, // 10 segundos de timeout para processamento de pagamento
         )
 
-        const pixPayment = await newPaymentResponse.json()
+        const pixPayment = await newPaymentResponse.json() as AppmaxPixPaymentResponse
 
         // Prepara os dados para salvar no banco
         const paymentData = {

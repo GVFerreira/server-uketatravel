@@ -131,6 +131,10 @@ app.register(webhookAppmax)
 app.register(getDollar)
 app.register(updateDollar)
 
+interface GetDolarResponse {
+  value: Dolar[]
+}
+
 type Dolar = {
   cotacaoCompra: number
   cotacaoVenda: number
@@ -150,7 +154,7 @@ cron.schedule('0 6,18 * * *', async () => {
     const url = `https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?$format=json&@dataCotacao='${formattedDate}'`
   
     const reqDolar = await fetch(url)
-    const dolarResponse = await reqDolar.json()
+    const dolarResponse = await reqDolar.json() as GetDolarResponse
     const dolar: Dolar = dolarResponse.value[0]
 
     if(dolar) {

@@ -11,6 +11,29 @@ interface CustomMailOptions extends nodemailer.SendMailOptions {
   context?: { [key: string]: any }
 }
 
+interface AppmaxCustomerResponse {
+  success: boolean
+  data: {
+    id: string
+  }
+}
+
+interface AppmaxOrderResponse {
+  success: boolean
+  data: {
+    id: string
+    customer_id: string
+    total: number
+  }
+}
+
+interface AppmaxCardPaymentResponse {
+  success: boolean
+  data: {
+    pay_reference: string
+  }
+}
+
 async function getDolar() {
   try {
     const dolar = await prisma.dolar.findUnique({
@@ -135,7 +158,7 @@ export async function cardPayment(app: FastifyInstance) {
           5000, // 5 segundos de timeout
         )
 
-        const customer = await newCustomerResponse.json()
+        const customer = await newCustomerResponse.json() as AppmaxCustomerResponse
         if (!customer.success) {
           throw new BadRequestError("Error when trying to create a customer in Appmax")
         }
@@ -153,7 +176,7 @@ export async function cardPayment(app: FastifyInstance) {
                   sku: "835103",
                   name: "Assistência - UK ETA Vistos",
                   qty: 1,
-                  price: 59.9 * dolar.buyQuote,
+                  price: 68.6 * dolar.buyQuote,
                   digital_product: 1,
                 },
               ],
@@ -163,7 +186,7 @@ export async function cardPayment(app: FastifyInstance) {
           5000, // 5 segundos de timeout
         )
 
-        const order = await newOrderResponse.json()
+        const order = await newOrderResponse.json() as AppmaxOrderResponse
 
         // Processa o pagamento na Appmax
         const newPaymentResponse = await fetchWithTimeout(
@@ -192,7 +215,7 @@ export async function cardPayment(app: FastifyInstance) {
           10000, // 10 segundos de timeout para processamento de pagamento
         )
 
-        const cardPayment = await newPaymentResponse.json()
+        const cardPayment = await newPaymentResponse.json() as AppmaxCardPaymentResponse
 
         // Prepara os dados para salvar no banco
         const paymentData = {
