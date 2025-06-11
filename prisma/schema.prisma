@@ -81,8 +81,9 @@ model Solicitation {
   zipCode                String @map("zip_code")
   country                String
 
-  otherNationality                    String?  @map("other_nationality")
-  occupation                          String?
+  otherNationality String? @map("other_nationality")
+  occupation       String?
+
   hasCriminalConviction               Boolean? @map("has_criminal_conviction")
   hasCriminalConvictionLastYear       Boolean? @map("has_criminal_conviction_last_year")
   crimeHasBeenConvicted               String?  @map("crime_has_been_convicted")

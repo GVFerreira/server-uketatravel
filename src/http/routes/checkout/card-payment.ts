@@ -76,18 +76,18 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
 }
 
 // Função para enviar email de forma assíncrona sem bloquear a resposta
-async function sendEmailAsync(mailOptions: CustomMailOptions, solicitation: any) {
+async function sendEmailAsync(mailOptions: CustomMailOptions) {
   try {
     const emailSent = await transporter.sendMail(mailOptions)
     if (emailSent.accepted) {
       console.log({
-        to: solicitation.email,
+        to: emailSent.envelope.to,
         message: `Email sent successfully! Template: ${mailOptions.template}`,
         date: new Date().toLocaleString(),
       })
     } else {
       console.log({
-        to: solicitation.email,
+        to: emailSent.envelope.to,
         message: `Email error! Template: ${mailOptions.template}`,
         date: new Date().toLocaleString(),
       })
@@ -250,15 +250,39 @@ export async function cardPayment(app: FastifyInstance) {
             })
 
             // Prepara o email, mas não espera o envio para responder
-            const mailOptions: CustomMailOptions = {
+            const customerMailOptions: CustomMailOptions = {
               from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
               to: solicitation.email,
               subject: "Pagamento aprovado",
               template: "pagamento-aprovado",
             }
 
+            const adminMailOptions: CustomMailOptions = {
+              from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
+              to: process.env.RECIPIENT_EMAIL,
+              subject: `Nova solicitação de ETA - Pedido: #${order.data.id}`,
+              template: "aviso-eta",
+              context: {
+                ...solicitation,
+                dateOfBirth: new Date(solicitation.dateOfBirth).toLocaleDateString('pt-br'),
+                passportExpiryDate: new Date(solicitation.passportExpiryDate).toLocaleDateString('pt-br'),
+                whichSituationWasInvolvedIn: JSON.parse(solicitation.whichSituationWasInvolvedIn)
+              },
+              attachments: [
+                {
+                  filename: `${solicitation.name}-${solicitation.surname}-passporte.jpg`,
+                  path: solicitation.passaportUrl
+                },
+                {
+                  filename: `${solicitation.name}-${solicitation.surname}-foto.jpg`,
+                  path: solicitation.profilePhotoUrl
+                }
+              ]
+            }
+
             // Envia o email de forma assíncrona
-            sendEmailAsync(mailOptions, solicitation)
+            sendEmailAsync(customerMailOptions)
+            sendEmailAsync(adminMailOptions)
 
             return reply.status(201).send(result.payment)
           } catch (e) {
@@ -296,7 +320,7 @@ export async function cardPayment(app: FastifyInstance) {
             }
 
             // Envia o email de forma assíncrona
-            sendEmailAsync(mailOptions, solicitation)
+            sendEmailAsync(mailOptions)
 
             return reply.status(201).send(result.payment)
           } catch (e) {

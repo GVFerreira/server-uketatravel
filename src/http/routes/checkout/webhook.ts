@@ -14,37 +14,19 @@ interface CustomMailOptions extends nodemailer.SendMailOptions {
   context?: { [key: string]: any }
 }
 
-// Função auxiliar para fazer requisições com timeout
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 10000) {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeout)
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
-    return response
-  } catch (error) {
-    clearTimeout(timeoutId)
-    throw error
-  }
-}
-
 // Função para enviar email de forma assíncrona sem bloquear a resposta
-async function sendEmailAsync(mailOptions: CustomMailOptions, solicitation: any) {
+async function sendEmailAsync(mailOptions: CustomMailOptions) {
   try {
     const emailSent = await transporter.sendMail(mailOptions)
     if (emailSent.accepted) {
       console.log({
-        to: solicitation.email,
+        to: emailSent.envelope.to,
         message: `Email sent successfully! Template: ${mailOptions.template}`,
         date: new Date().toLocaleString(),
       })
     } else {
       console.log({
-        to: solicitation.email,
+        to: emailSent.envelope.to,
         message: `Email error! Template: ${mailOptions.template}`,
         date: new Date().toLocaleString(),
       })
@@ -141,8 +123,31 @@ export async function webhookAppmax(app: FastifyInstance) {
             template: "pagamento-aprovado",
           }
 
-          // Envia o email de forma assíncrona
-          sendEmailAsync(mailOptions, solicitation)
+          const adminMailOptions: CustomMailOptions = {
+            from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
+            to: process.env.RECIPIENT_EMAIL,
+            subject: `Nova solicitação de ETA - Pedido: #${payment.idOrder}`,
+            template: "aviso-eta",
+            context: {
+              ...solicitation.solicitations,
+              dateOfBirth: new Date(solicitation.solicitations.dateOfBirth).toLocaleDateString('pt-br'),
+              passportExpiryDate: new Date(solicitation.solicitations.passportExpiryDate).toLocaleDateString('pt-br'),
+              whichSituationWasInvolvedIn: JSON.parse(solicitation.solicitations.whichSituationWasInvolvedIn)
+            },
+            attachments: [
+              {
+                filename: `${solicitation.solicitations.name}-${solicitation.solicitations.surname}-passporte.jpg`,
+                path: solicitation.solicitations.passaportUrl
+              },
+              {
+                filename: `${solicitation.solicitations.name}-${solicitation.solicitations.surname}-foto.jpg`,
+                path: solicitation.solicitations.profilePhotoUrl
+              }
+            ]
+          }
+
+          sendEmailAsync(mailOptions)
+          sendEmailAsync(adminMailOptions)
         }
       } else if (payload.event === "PaymentNotAuthorized | Reason: Não autorizado") {
         await updatePayment({ id: payment.id, status: "Negado"})
@@ -159,7 +164,7 @@ export async function webhookAppmax(app: FastifyInstance) {
           }
 
           // Envia o email de forma assíncrona
-          sendEmailAsync(mailOptions, solicitation)
+          sendEmailAsync(mailOptions)
         }
       }
 
