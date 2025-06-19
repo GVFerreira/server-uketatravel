@@ -52,7 +52,7 @@ export async function formContact(app:FastifyInstance) {
 
     const mailOptions: CustomMailOptions = {
       from: `UK ETA Vistos <${process.env.SMTP_USER}>`,
-      to: 'support@traveler-assist.com',
+      to: process.env.RECIPIENT_EMAIL,
       subject: "Formulário de contato",
       template: "contato",
       context: {
