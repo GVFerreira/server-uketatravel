@@ -269,12 +269,17 @@
                                     </tr>
                                   {{/if}}
 
-                                  {{#if whichSituationWasInvolvedIn}}
                                   <tr>
                                     <td style="border: 1px solid #ddd;"><strong>Envolvimento em situação</strong></td>
-                                    <td style="border: 1px solid #ddd;">{{#each whichSituationWasInvolvedIn}}{{/each}}</td>
+                                    <td style="border: 1px solid #ddd;">
+                                      {{#if whichSituationWasInvolvedIn}}
+                                        {{#each whichSituationWasInvolvedIn}}{{/each}}
+                                        {{else}}
+                                        Sem envolvimentos
+                                      {{/if}}  
+                                      </td>
                                   </tr>
-                                  {{/if}}
+                                  
 
                                 </tbody>
                               </table>
